@@ -12,6 +12,7 @@ using namespace std;
 bool run = true;
 string fullPath = "";
 string fullData = "Winner Winner Chicken Dinner";
+char* dataBuffer;
 
 //global functions
 void printData()
@@ -24,6 +25,58 @@ void printData()
 		system("PAUSE");
 	}
 
+void typeWriter(string x)
+{
+	string subText;
+	bool fin = true;
+
+	cout << "Write whatever data in ASCII code to be submitted." << endl;
+	cout << "Hitting the return key (enter) will submit a new line." << endl;
+	cout << "Once a new line has been submitted, you may not edit it. Proofread carefully." << endl;
+	cout << "To start over and clear the slate. Submit a new line. Type '/clear' and submit it." << endl;
+	cout << "TWhen you are finished typing. Submit a new line. Type '/finish' and submit it." << endl;
+	cout << "------------------------------ Begin Typing ------------------------------" << endl << endl;
+	if (x == "edit")
+	{
+		cout << fullData << endl;
+	}
+	else if (x == "clear")
+	{
+		fullData = "";
+	}
+	
+	while (fin)
+	{
+		getline(cin, subText);
+
+		//if != finish write to subtext
+		if (subText == "/finish")
+		{
+			fin = false;
+			break;
+			cout << "------------------------------ Data Submitted ------------------------------";
+		}
+		else if (subText == "/clear")
+		{
+			system("CLS");
+			fullData = "";
+		}
+		else
+		{
+			if (fullData == "")
+			{
+				fullData = subText + "\n";
+			}
+			else
+			{
+				//cout << subText << endl;
+				fullData = fullData + subText + "\n";
+			}
+		}
+	}
+
+	system("PAUSE");
+}
 
 
 
@@ -84,6 +137,70 @@ public:
 
 		//opens the file
 		closeObj.open(path, ios::out);
+
+		//creates a temp object on the stack for fast writing
+		string fileStream = fullData;
+
+		//write the data to file
+		closeObj << fileStream;
+
+		//close the stream
+		closeObj.close();
+
+		cout << "Print to File complete." << endl << endl;
+		printData();
+	}
+
+
+	void openFileBinary(string path)
+	{
+		//creqates the stream obj
+		ifstream openObj;
+
+		//opens the streaming file
+		try {
+			openObj.open(path, ios::in, ios::binary);
+		}
+		catch (...)
+		{
+			cout << "There was an error opening this file." << endl;
+		}
+
+		//gets size of file
+		//creates an array on the heap and allocates memory to read to
+		openObj.seekg(0, openObj.end);
+		int xsize = openObj.tellg();
+		openObj.seekg(0, openObj.beg);
+
+
+		dataBuffer = new char[xsize];
+		//reads file to the BUFFER in the amount of XSIZE
+		openObj.read(dataBuffer, xsize);
+
+
+		//ERROR CHECKING
+		if (openObj)
+			std::cout << "All characters read successfully.";
+		else
+			std::cout << "Error: only " << openObj.gcount() << " could be read";
+
+
+
+		//close the stream
+		openObj.close();
+
+		fullData = string(dataBuffer);
+		cout << "Read from File complete." << endl << endl;
+		printData();
+	}
+
+	void closeFileBinary(string path)
+	{
+		//creates the stream obj
+		ofstream closeObj;
+
+		//opens the file
+		closeObj.open(path, ios::out, ios::binary);
 
 		//creates a temp object on the stack for fast writing
 		string fileStream = fullData;
@@ -218,6 +335,10 @@ public:
 		cout << "3) Decrypt" << endl;
 		cout << "4) Read from File" << endl;
 		cout << "5) Print to File" << endl;
+		cout << "6) Read from File" << endl;
+		cout << "7) Print to File" << endl;
+		cout << "8) New ASCII data" << endl;
+		cout << "9) Edit ASCII data" << endl;
 		cout << "0) Exit" << endl;
 		cout << "Choose your command by entering the number" << endl;
 
@@ -263,6 +384,20 @@ public:
 			case 5:
 				io.setFullPath();
 				io.closeFile(fullPath);
+				break;
+			case 6:
+				io.setFullPath();
+				io.openFileBinary(fullPath);
+				break;
+			case 7:
+				io.setFullPath();
+				io.closeFileBinary(fullPath);
+				break;
+			case 8:
+				typeWriter("clear");
+				break;
+			case 9:
+				typeWriter("edit");
 				break;
 			case 100:
 				cout << "You must enter a number for a command." << endl;
