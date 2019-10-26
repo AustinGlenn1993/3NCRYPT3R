@@ -1,9 +1,16 @@
 // Encrypter.cpp : This file contains the 'main' function. Program execution begins and ends there.
 //
 
+//includs for tiny file dialog
+#include <stdio.h>
+#include <string.h>
+#include "tinyfiledialogs.h"
+
+//includes for file saving and console input output
 #include <iostream>
 #include <fstream>
 #include <string>
+
 
 
 using namespace std;
@@ -14,15 +21,18 @@ string fullPath = "";
 int dataSize = 2;
 char* dataBuffer;
 
+//filters for the tinyfiledialog
+char const* lFilterPatterns[3] = { "*.txt", "*.text", "*."};
+
 
 //global functions
 void printData()
 	{
-		cout << "Current File Path: " << endl;
+		cout << "Current File Path: --------------------------------------------------" << endl;
 		cout <<	fullPath << endl;
-		cout << "Current Data PREVIEW: " << endl;
+		cout << endl << "Current Data PREVIEW: -----------------------------------------------" << endl;
 
-		//Display a PREVIEW of Data
+		//Display a PREVIEW of Data NO GREATER THAN 1500 BYTES
 		string displayText = "";
 		int loop = dataSize;
 		if (dataSize > 1500)
@@ -33,15 +43,31 @@ void printData()
 		{
 			loop = dataSize;
 		}
-		for (unsigned x = 0; x < loop; x++)
+		for (int x = 0; x < loop; x++)
 		{
 			displayText += dataBuffer[x];
 		}
 		cout << displayText << endl;
 
 
-		//add lots of space between data and next key
-		cout << endl << endl << "------------------END------------------" << endl << endl << endl;
+
+
+		//If all Data could not be shown.
+		if (loop >= 1500)
+		{
+			cout << endl << endl << endl;
+			cout << "-----------------------------------------------------------------" << endl;
+			cout << "...........MORE DATA EXISTS, BUT IS TOO MUCH TO PREVIEW.........." << endl;
+			cout << "-------------------------------END-------------------------------" << endl << endl << endl;
+		}
+		else
+		{
+			cout << endl << endl << endl;
+			cout << "-----------------------------------------------------------------" << endl;
+			cout << "......................ALL DATA PREVIEWING ABOVE.................." << endl;
+			cout << "-------------------------------END-------------------------------" << endl << endl << endl;
+		}
+		
 	}
 
 void typeWriter(string x)
@@ -104,102 +130,155 @@ void typeWriter(string x)
 
 
 
-
+//classes used
 class IO
 {
 public:
+	/*   THIS FUNCTION IS DEPRECATED WITH THE INRODUCTION OF TINY FILE DIALOG
 	void setFullPath()
 	{
-		string filePath = "FILES/";
+		//folder for filepath
+		string filePath = "FILES";
 		string fileName;
 
 		cout << "What is the name of the file you are encrypting?" << endl;
 		cin >> fileName;
 
-		fullPath = filePath + fileName;
+		fullPath = filePath + "/" + fileName;
+	}
+	*/
+
+	void fullPathToCompliant()
+	{
+		//for loop to replace all backward slashes that are interpreted as escape codes
+		//to backslashes that are interpretted as forward slashes that are not escape codes
+		for (int x = 0; x < (int)fullPath.size(); x++)
+		{
+			if (fullPath[x] == '\\')
+			{
+				fullPath[x] = '/';
+			}
+
+		}
 	}
 
-	void openFileBinary(string path)
+	void openFileBinary()
 	{
-		//creqates the stream obj
+		//creates the char const for saving the file
+		char const* lTheOpenFileName;
+
+		//open the open file dialog
+		lTheOpenFileName = tinyfd_openFileDialog(
+			"Open File",
+			"",
+			3,
+			lFilterPatterns,
+			NULL,
+			0);
+
+		//sets full path to the returned path
+		fullPath = lTheOpenFileName;
+
+		//ensures file path complies with c++ library and fstream
+		fullPathToCompliant();
+
+		//creates the stream obj
 		ifstream openObj;
 
-		//opens the streaming file
+		//trys to opens the streaming file
 		try {
-			openObj.open(path, ios::in|ios::binary);
+			openObj.open(fullPath, ios::in|ios::binary);
 		}
 		catch (...)
 		{
 			cout << "There was an error opening this file." << endl;
 		}
 
-		//gets size of file
-		//creates an array on the heap and allocates memory to read to
-		openObj.seekg(0, openObj.end);
-		dataSize = (int)openObj.tellg();
-		openObj.seekg(0, openObj.beg);
-
-		//creates a pointer to a char dynamically allocated on the heap
-		//initializes an array of 'xsize'
-		dataBuffer = new char[dataSize]();
-		//reads file to the BUFFER in the amount of XSIZE
-		openObj.read(reinterpret_cast<char*>(dataBuffer), dataSize);
-		//converts the char* to a string literal
-
-
-
 		//ERROR CHECKING
 		if (openObj)
 		{
-			cout << "Size of file: " << dataSize << " bytes" << endl;
-			std::cout << "All " << openObj.gcount() << " bytes read successfully." << endl;
+			//if openObj was successful
+
+			//gets size of file
+			openObj.seekg(0, openObj.end);
+			dataSize = (int)openObj.tellg();
+			openObj.seekg(0, openObj.beg);
+
+			//initializes dataBuffer to array of 'xsize'
+			dataBuffer = new char[dataSize]();
+
+			//reads file to the BUFFER in the amount of XSIZE
+			openObj.read(reinterpret_cast<char*>(dataBuffer), dataSize);
+
+			//close the stream
+			openObj.close();
+
+			cout << "File located at: " << fullPath << endl;
+			cout << "Size of file: " << dataSize << " bytes." << endl;
+			cout << "..." << endl;
+			cout << "All " << openObj.gcount() << " bytes read successfully." << endl;
+			cout << "Read from File complete." << endl << endl;
 		}
 		else
 		{
-			std::cout << "Error: only " << openObj.gcount() << " bytes could be read";
+			std::cout << "Error: only " << openObj.gcount() << " bytes could be read." << endl;
+			cout << "Read from File complete with errors." << endl << endl;
 		}
 
-		//close the stream
-		openObj.close();
-
-		cout << "Read from File complete." << endl << endl;
-		//printData();
 		system("PAUSE");
 	}
 
-	void closeFileBinary(string path)
+	void closeFileBinary()
 	{
+		//creates the char const for saving the file
+		char const* lTheSaveFileName;
+
+		//open save file dialog
+		lTheSaveFileName = tinyfd_saveFileDialog(
+			"let us save this password",
+			"passwordFile.txt",
+			2,
+			lFilterPatterns,
+			NULL);
+
+		//sets full path to the returned path
+		fullPath = lTheSaveFileName;
+
+		//ensures file path complys with c++ library and fstream
+		fullPathToCompliant();
+
 		//creates the stream obj
 		ofstream closeObj;
 
 		try {
 			//opens the file
-			closeObj.open(path, ios::out|ios::binary);
+			closeObj.open(fullPath, ios::out|ios::binary);
 		}
 		catch (...)
 		{
 			cout << "There was an error opening this file." << endl;
 		}
 
-		
-		//write the data to file
-		closeObj.write(reinterpret_cast<char*>(dataBuffer), dataSize);
-
 		//ERROR CHECKING
 		if (closeObj)
 		{
-			std::cout << "All " << "" << " characters written successfully.";
+			//write the data to file
+			closeObj.write(reinterpret_cast<char*>(dataBuffer), dataSize);
+
+			//close the stream
+			closeObj.close();
+
+			cout << "File located at: " << fullPath << endl;
+			cout << "Size of file: " << dataSize << " bytes." << endl;
+			cout << "..." << endl;
+			cout << "All " << dataSize << " byte of data written successfully." << endl;;
+			cout << "Print to File complete." << endl << endl;
 		}
 		else
 		{
-			std::cout << "Error: only " << "some of the bits" << " could be written";
+			cout << "Print to File complete with errors." << endl << endl;
 		}
 
-		//close the stream
-		closeObj.close();
-
-		cout << "Print to File complete." << endl << endl;
-		printData();
 		system("PAUSE");
 	}
 };
@@ -220,12 +299,12 @@ public:
 
 	void encrypt()
 	{
-		unsigned int revolver = 0;
+		int revolver = 0;
 
 		system("CLS");
 		cout << "Please wait while your data is being encrypted.";
 
-		for (unsigned int x = 0; x <= dataSize; x++)
+		for (int x = 0; x <= dataSize; x++)
 		{
 			//creates temporary character holder and sets the tchar integer to the int casted from the x position in the for loop
 			int tCharData = (int)dataBuffer[x];
@@ -242,7 +321,7 @@ public:
 			dataBuffer[x] = (char)tCharData;
 
 
-			if (revolver >= key.size())
+			if (revolver >= (int)key.size())
 			{
 				revolver = 0;
 			}
@@ -267,7 +346,7 @@ public:
 		system("CLS");
 		cout << "Please wait while your data is being decrypted.";
 
-		for (unsigned int x = 0; x <= dataSize; x++)
+		for (int x = 0; x <= dataSize; x++)
 		{
 			//creates temporary character holder and sets the tchar integer to the int casted from the x position in the for loop
 			int tCharData = (int)dataBuffer[x];
@@ -366,12 +445,10 @@ public:
 				psy.decrypt();
 				break;
 			case 4:
-				io.setFullPath();
-				io.openFileBinary(fullPath);
+				io.openFileBinary();
 				break;
 			case 5:
-				io.setFullPath();
-				io.closeFileBinary(fullPath);
+				io.closeFileBinary();
 				break;
 			case 6:
 				typeWriter("clear");
@@ -406,7 +483,7 @@ public:
 
 
 
-
+//main functions
 int main()
 {
 	//testing
@@ -415,6 +492,13 @@ int main()
 	dataBuffer = new char[dataSize]();
 	defaultValue.copy(dataBuffer, dataSize);
 
+
+	tinyfd_messageBox(
+		"Welcome",
+		"Program Started Successfully\nWelcome to 3NCRYPT3R",
+		"ok",
+		"info",
+		1);
 
 	Prompter prg;
 	while (run == true)
