@@ -11,22 +11,42 @@ using namespace std;
 //global variables
 bool run = true;
 string fullPath = "";
-string fullData = "Winner Winner Chicken Dinner";
+int dataSize = 2;
 char* dataBuffer;
+
 
 //global functions
 void printData()
 	{
-		cout << "Current Data: " << endl;
-		cout << fullData;
+		cout << "Current File Path: " << endl;
+		cout <<	fullPath << endl;
+		cout << "Current Data PREVIEW: " << endl;
+
+		//Display a PREVIEW of Data
+		string displayText = "";
+		int loop = dataSize;
+		if (dataSize > 1500)
+		{
+			loop = 1500;
+		}
+		else
+		{
+			loop = dataSize;
+		}
+		for (unsigned x = 0; x < loop; x++)
+		{
+			displayText += dataBuffer[x];
+		}
+		cout << displayText << endl;
+
 
 		//add lots of space between data and next key
-		cout << endl << endl << endl << "------------------END------------------" << endl << endl << endl << endl << endl << endl << endl;
-		system("PAUSE");
+		cout << endl << endl << "------------------END------------------" << endl << endl << endl;
 	}
 
 void typeWriter(string x)
 {
+	string fullText;
 	string subText;
 	bool fin = true;
 
@@ -36,15 +56,20 @@ void typeWriter(string x)
 	cout << "To start over and clear the slate. Submit a new line. Type '/clear' and submit it." << endl;
 	cout << "TWhen you are finished typing. Submit a new line. Type '/finish' and submit it." << endl;
 	cout << "------------------------------ Begin Typing ------------------------------" << endl << endl;
+	
+	
+	//command line
 	if (x == "edit")
 	{
-		cout << fullData << endl;
+		cout << fullText << endl;
 	}
 	else if (x == "clear")
 	{
-		fullData = "";
+		fullText = "";
 	}
-	
+
+
+	//loop and write data
 	while (fin)
 	{
 		getline(cin, subText);
@@ -59,21 +84,20 @@ void typeWriter(string x)
 		else if (subText == "/clear")
 		{
 			system("CLS");
-			fullData = "";
+			fullText = "";
 		}
 		else
 		{
-			if (fullData == "")
-			{
-				fullData = subText + "\n";
-			}
-			else
-			{
-				//cout << subText << endl;
-				fullData = fullData + subText + "\n";
-			}
+			//cout << subText << endl;
+			fullText = fullText + subText + "\n";
 		}
 	}
+
+
+	//creates new char array the size of the fullText
+	dataSize = ((fullText.size() + 1));
+	dataBuffer = new char[dataSize]();
+	fullText.copy(dataBuffer, dataSize);
 
 	system("PAUSE");
 }
@@ -94,63 +118,6 @@ public:
 
 		fullPath = filePath + fileName;
 	}
-	
-	void openFile(string path)
-	{
-		//creqates the stream obj
-		ifstream openObj;
-
-		//opens the streaming file
-		try {
-		openObj.open(path, ios::in);
-		}
-		catch (...)
-		{
-			cout << "There was an error opening this file." << endl;
-		}
-
-		//creates temp vars on stack for fast reading
-		string fileStream;
-		char c;
-		//reads the characters in one by one
-		while (!openObj.eof())
-		{
-			openObj.get(c);
-			fileStream += c;
-		}
-
-		//sets main fullText to fileStream data
-		fullData = fileStream;
-
-		//close the stream
-		openObj.close();
-
-
-		cout << "Read from File complete." << endl << endl;
-		printData();
-	}
-
-	void closeFile(string path)
-	{
-		//creates the stream obj
-		ofstream closeObj;
-
-		//opens the file
-		closeObj.open(path, ios::out);
-
-		//creates a temp object on the stack for fast writing
-		string fileStream = fullData;
-
-		//write the data to file
-		closeObj << fileStream;
-
-		//close the stream
-		closeObj.close();
-
-		cout << "Print to File complete." << endl << endl;
-		printData();
-	}
-
 
 	void openFileBinary(string path)
 	{
@@ -159,7 +126,7 @@ public:
 
 		//opens the streaming file
 		try {
-			openObj.open(path, ios::in, ios::binary);
+			openObj.open(path, ios::in|ios::binary);
 		}
 		catch (...)
 		{
@@ -169,29 +136,35 @@ public:
 		//gets size of file
 		//creates an array on the heap and allocates memory to read to
 		openObj.seekg(0, openObj.end);
-		int xsize = openObj.tellg();
+		dataSize = (int)openObj.tellg();
 		openObj.seekg(0, openObj.beg);
 
-
-		dataBuffer = new char[xsize];
+		//creates a pointer to a char dynamically allocated on the heap
+		//initializes an array of 'xsize'
+		dataBuffer = new char[dataSize]();
 		//reads file to the BUFFER in the amount of XSIZE
-		openObj.read(dataBuffer, xsize);
+		openObj.read(reinterpret_cast<char*>(dataBuffer), dataSize);
+		//converts the char* to a string literal
+
 
 
 		//ERROR CHECKING
 		if (openObj)
-			std::cout << "All characters read successfully.";
+		{
+			cout << "Size of file: " << dataSize << " bytes" << endl;
+			std::cout << "All " << openObj.gcount() << " bytes read successfully." << endl;
+		}
 		else
-			std::cout << "Error: only " << openObj.gcount() << " could be read";
-
-
+		{
+			std::cout << "Error: only " << openObj.gcount() << " bytes could be read";
+		}
 
 		//close the stream
 		openObj.close();
 
-		fullData = string(dataBuffer);
 		cout << "Read from File complete." << endl << endl;
-		printData();
+		//printData();
+		system("PAUSE");
 	}
 
 	void closeFileBinary(string path)
@@ -199,28 +172,45 @@ public:
 		//creates the stream obj
 		ofstream closeObj;
 
-		//opens the file
-		closeObj.open(path, ios::out, ios::binary);
+		try {
+			//opens the file
+			closeObj.open(path, ios::out|ios::binary);
+		}
+		catch (...)
+		{
+			cout << "There was an error opening this file." << endl;
+		}
 
-		//creates a temp object on the stack for fast writing
-		string fileStream = fullData;
-
+		
 		//write the data to file
-		closeObj << fileStream;
+		closeObj.write(reinterpret_cast<char*>(dataBuffer), dataSize);
+
+		//ERROR CHECKING
+		if (closeObj)
+		{
+			std::cout << "All " << "" << " characters written successfully.";
+		}
+		else
+		{
+			std::cout << "Error: only " << "some of the bits" << " could be written";
+		}
 
 		//close the stream
 		closeObj.close();
 
 		cout << "Print to File complete." << endl << endl;
 		printData();
+		system("PAUSE");
 	}
 };
 
 class Cipher
 {
-public:
+private:
 	string key;
 
+
+public:
 	void askForKey()
 	{
 		cout << "What key would you like to use for Encryption/Decryption?" << endl;
@@ -232,10 +222,13 @@ public:
 	{
 		unsigned int revolver = 0;
 
-		for (unsigned int x = 0; x <= fullData.size(); x++)
+		system("CLS");
+		cout << "Please wait while your data is being encrypted.";
+
+		for (unsigned int x = 0; x <= dataSize; x++)
 		{
 			//creates temporary character holder and sets the tchar integer to the int casted from the x position in the for loop
-			int tCharData = (int)fullData[x];
+			int tCharData = (int)dataBuffer[x];
 			//gets the int code of the first character in the key
 			int tCharKey = (int)key[revolver];
 
@@ -243,14 +236,10 @@ public:
 
 			//algorithum for encryption
 			tCharData += tCharKey;
-			if (tCharData > 127)
-			{
-				tCharData -= 127;
-			}
 
 
 			//executes adjusting the data to the new encryption
-			fullData[x] = (char)tCharData;
+			dataBuffer[x] = (char)tCharData;
 
 
 			if (revolver >= key.size())
@@ -261,21 +250,27 @@ public:
 			{
 				revolver++;
 			}
+
 		}
 
-		cout << "File Encryption Complete." << endl;
+		system("CLS");
+		cout << endl << "File Encryption Complete." << endl;
 		cout << endl << endl;
 		printData();
+		system("PAUSE");
 	}
 
 	void decrypt()
 	{
 		unsigned int revolver = 0;
 
-		for (unsigned int x = 0; x <= fullData.size(); x++)
+		system("CLS");
+		cout << "Please wait while your data is being decrypted.";
+
+		for (unsigned int x = 0; x <= dataSize; x++)
 		{
 			//creates temporary character holder and sets the tchar integer to the int casted from the x position in the for loop
-			int tCharData = (int)fullData[x];
+			int tCharData = (int)dataBuffer[x];
 			//gets the int code of the first character in the key
 			int tCharKey = (int)key[revolver];
 
@@ -283,14 +278,10 @@ public:
 
 			//algorithum for encryption
 			tCharData -= tCharKey;
-			if (tCharData < 0)
-			{
-				tCharData += 127;
-			}
 
 
 			//executes adjusting the data to the new encryption
-			fullData[x] = (char)tCharData;
+			dataBuffer[x] = (char)tCharData;
 
 
 			if (revolver >= key.size())
@@ -304,28 +295,27 @@ public:
 		}
 
 
-
+		system("CLS");
 		cout << "File Decryption Complete." << endl;
 		cout << endl << endl;
 		printData();
+		system("PAUSE");
 	}
 
 };
 
 class Prompter
 {
+public:
 	//initializes classes as objects
 	IO io;
 	Cipher psy;
-
-public:
 
 	void takeCommand()
 	{
 		//INFO AND INPUT
 		system("CLS");
-		cout << "Current File: " << fullPath << endl;
-		cout << "Current Data: " << endl << fullData << endl;
+		printData();
 		cout << endl << endl;
 
 
@@ -335,10 +325,8 @@ public:
 		cout << "3) Decrypt" << endl;
 		cout << "4) Read from File" << endl;
 		cout << "5) Print to File" << endl;
-		cout << "6) Read from File" << endl;
-		cout << "7) Print to File" << endl;
-		cout << "8) New ASCII data" << endl;
-		cout << "9) Edit ASCII data" << endl;
+		cout << "6) New ASCII data" << endl;
+		cout << "7) Edit ASCII data" << endl;
 		cout << "0) Exit" << endl;
 		cout << "Choose your command by entering the number" << endl;
 
@@ -379,24 +367,16 @@ public:
 				break;
 			case 4:
 				io.setFullPath();
-				io.openFile(fullPath);
+				io.openFileBinary(fullPath);
 				break;
 			case 5:
 				io.setFullPath();
-				io.closeFile(fullPath);
-				break;
-			case 6:
-				io.setFullPath();
-				io.openFileBinary(fullPath);
-				break;
-			case 7:
-				io.setFullPath();
 				io.closeFileBinary(fullPath);
 				break;
-			case 8:
+			case 6:
 				typeWriter("clear");
 				break;
-			case 9:
+			case 7:
 				typeWriter("edit");
 				break;
 			case 100:
@@ -416,7 +396,6 @@ public:
 		}
 	}
 
-
 	void exitProgram()
 	{
 		cout << "Terminating Program";
@@ -430,6 +409,13 @@ public:
 
 int main()
 {
+	//testing
+	string defaultValue = "Hello World. Welcome to the 3NCRYPT3R. Bro its lit.";
+	dataSize = (defaultValue.size() + 1);
+	dataBuffer = new char[dataSize]();
+	defaultValue.copy(dataBuffer, dataSize);
+
+
 	Prompter prg;
 	while (run == true)
 	{
